@@ -96,8 +96,9 @@ class CPT_Core {
 	 * @return array  CPT arguments array
 	 */
 	public function get_args() {
-		if ( ! empty( $this->cpt_args ) )
+		if ( ! empty( $this->cpt_args ) ) {
 			return $this->cpt_args;
+		}
 
 		// Generate CPT labels
 		$labels = array(
@@ -127,8 +128,41 @@ class CPT_Core {
 			'supports'           => array( 'title', 'editor', 'excerpt' ),
 		);
 
-		$this->cpt_args = wp_parse_args( $this->arg_overrides, $defaults );
+		$this->cpt_args = self::parse_args_r( $this->arg_overrides, $defaults );
 		return $this->cpt_args;
+	}
+
+	/**
+	 * Recursive argument parsing
+	 *
+	 * This acts like a multi-dimensional version of wp_parse_args() (minus
+	 * the querystring parsing - you must pass arrays).
+	 *
+	 * Values from $args override those from $defaults; keys in $defaults that don't exist
+	 * in $args are passed through.
+	 *
+	 * @author Boone Gorges
+	 * @link   http://teleogistic.net/2013/05/a-recursive-sorta-version-of-wp_parse_args/
+	 *
+	 * @since  0.2.0
+	 * @param  array $args
+	 * @param  array $defaults
+	 * @return array
+	 */
+	public static function parse_args_r( &$args, $defaults ) {
+		$args     = (array) $args;
+		$defaults = (array) $defaults;
+		$r        = $defaults;
+
+		foreach ( $args as $k => &$v ) {
+			if ( is_array( $v ) && isset( $r[ $k ] ) ) {
+				$r[ $k ] = self::parse_args_r( $v, $r[ $k ] );
+			} else {
+				$r[ $k ] = $v;
+			}
+		}
+
+		return $r;
 	}
 
 	/**
