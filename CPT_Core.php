@@ -68,7 +68,7 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 		/**
 		 * Constructor. Builds our CPT.
 		 * @since 0.1.0
-		 * @param mixed  $cpt           Array with Singular, Plural, and Registered (slug)
+		 * @param mixed  $cpt	   Array with Singular, Plural, and Registered (slug)
 		 * @param array  $arg_overrides CPT registration override arguments
 		 */
 		public function __construct( array $cpt, $arg_overrides = array() ) {
@@ -83,6 +83,10 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 
 			if ( ! is_string( $cpt[0] ) || ! is_string( $cpt[1] ) || ! is_string( $cpt[2] ) ) {
 				wp_die( __( 'It is required to pass a single, plural and slug string to CPT_Core', 'cpt-core' ) );
+			}
+			
+			if ( post_type_exists( $cpt[2] ) ) {
+				return;
 			}
 
 			$this->singular  = $cpt[0];
@@ -101,6 +105,7 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 			$h = isset( $arg_overrides['hierarchical'] ) && $arg_overrides['hierarchical'] ? 'pages' : 'posts';
 			add_action( "manage_{$h}_custom_column", array( $this, 'columns_display' ), 10, 2 );
 			add_filter( 'enter_title_here', array( $this, 'title' ) );
+			add_action( 'deactivated_plugin', array( $this, 'flush_permalink' ), 10, 2 );
 		}
 
 		/**
@@ -129,30 +134,30 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 
 			// Generate CPT labels
 			$labels = array(
-				'name'               => $this->plural,
+				'name'	       => $this->plural,
 				'singular_name'      => $this->singular,
-				'add_new'            => sprintf( __( 'Add New %s', 'cpt-core' ), $this->singular ),
+				'add_new'	    => sprintf( __( 'Add New %s', 'cpt-core' ), $this->singular ),
 				'add_new_item'       => sprintf( __( 'Add New %s', 'cpt-core' ), $this->singular ),
-				'edit_item'          => sprintf( __( 'Edit %s', 'cpt-core' ), $this->singular ),
-				'new_item'           => sprintf( __( 'New %s', 'cpt-core' ), $this->singular ),
-				'all_items'          => sprintf( __( 'All %s', 'cpt-core' ), $this->plural ),
-				'view_item'          => sprintf( __( 'View %s', 'cpt-core' ), $this->singular ),
+				'edit_item'	  => sprintf( __( 'Edit %s', 'cpt-core' ), $this->singular ),
+				'new_item'	   => sprintf( __( 'New %s', 'cpt-core' ), $this->singular ),
+				'all_items'	  => sprintf( __( 'All %s', 'cpt-core' ), $this->plural ),
+				'view_item'	  => sprintf( __( 'View %s', 'cpt-core' ), $this->singular ),
 				'search_items'       => sprintf( __( 'Search %s', 'cpt-core' ), $this->plural ),
-				'not_found'          => sprintf( __( 'No %s', 'cpt-core' ), $this->plural ),
+				'not_found'	  => sprintf( __( 'No %s', 'cpt-core' ), $this->plural ),
 				'not_found_in_trash' => sprintf( __( 'No %s found in Trash', 'cpt-core' ), $this->plural ),
 				'parent_item_colon'  => isset( $this->arg_overrides['hierarchical'] ) && $this->arg_overrides['hierarchical'] ? sprintf( __( 'Parent %s:', 'cpt-core' ), $this->singular ) : null,
-				'menu_name'          => $this->plural,
+				'menu_name'	  => $this->plural,
 			);
 
 			// Set default CPT parameters
 			$defaults = array(
-				'labels'             => array(),
-				'public'             => true,
+				'labels'	     => array(),
+				'public'	     => true,
 				'publicly_queryable' => true,
-				'show_ui'            => true,
+				'show_ui'	    => true,
 				'show_in_menu'       => true,
-				'has_archive'        => true,
-				'supports'           => array( 'title', 'editor', 'excerpt' ),
+				'has_archive'	=> true,
+				'supports'	   => array( 'title', 'editor', 'excerpt' ),
 			);
 
 			$this->cpt_args = wp_parse_args( $this->arg_overrides, $defaults );
@@ -177,13 +182,14 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 
 			// Add this post type to our custom_post_types array
 			self::$custom_post_types[ $this->post_type ] = $this;
+			$this->flush_permalink();
 		}
 
 		/**
 		 * Modies CPT based messages to include our CPT labels
 		 * @since  0.1.0
 		 * @param  array  $messages Array of messages
-		 * @return array            Modied messages array
+		 * @return array	    Modied messages array
 		 */
 		public function messages( $messages ) {
 			global $post, $post_ID;
@@ -227,7 +233,7 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 		 * Registers admin columns to display. To be overridden by an extended class.
 		 * @since  0.1.0
 		 * @param  array  $columns Array of registered column names/labels
-		 * @return array           Modified array
+		 * @return array	   Modified array
 		 */
 		public function columns( $columns ) {
 			// placeholder
@@ -238,7 +244,7 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 		 * Registers which columns are sortable. To be overridden by an extended class.
 		 * @since  0.1.0
 		 * @param  array  $columns Array of registered column keys => data-identifier
-		 * @return array           Modified array
+		 * @return array	   Modified array
 		 */
 		public function sortable_columns( $sortable_columns ) {
 			// placeholder
@@ -258,7 +264,7 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 		 * Filter CPT title entry placeholder text
 		 * @since  0.1.0
 		 * @param  string $title Original placeholder text
-		 * @return string        Modifed placeholder text
+		 * @return string	Modifed placeholder text
 		 */
 		public function title( $title ){
 
@@ -273,7 +279,7 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 		 * Provides access to protected class properties.
 		 * @since  0.2.0
 		 * @param  boolean $key Specific CPT parameter to return
-		 * @return mixed        Specific CPT parameter or array of singular, plural and registered name
+		 * @return mixed	Specific CPT parameter or array of singular, plural and registered name
 		 */
 		public function post_type( $key = 'post_type' ) {
 
@@ -288,7 +294,7 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 		 * Provides access to all CPT_Core taxonomy objects registered via this class.
 		 * @since  0.1.0
 		 * @param  string $post_type Specific CPT_Core object to return, or 'true' to specify only names.
-		 * @return mixed             Specific CPT_Core object or array of all
+		 * @return mixed	     Specific CPT_Core object or array of all
 		 */
 		public static function post_types( $post_type = '' ) {
 			if ( $post_type === true && ! empty( self::$custom_post_types ) ) {
@@ -320,6 +326,14 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 			$mofile = dirname( __FILE__ ) . '/languages/cpt-core-'. $locale .'.mo';
 			load_textdomain( 'cpt-core', $mofile );
 		}
+		
+		/**
+		 * Flush the permalink
+		 * @since  1.0.1
+		 */
+		public function flush_permalink() {
+			flush_rewrite_rules();
+		}
 
 	}
 
@@ -327,9 +341,9 @@ if ( ! class_exists( 'CPT_Core' ) ) :
 		/**
 		 * Helper function to register a CPT via the CPT_Core class. An extended class is preferred.
 		 * @since 0.2.0
-		 * @param mixed     $cpt           Singular CPT name, or array with Singular, Plural, and Registered
+		 * @param mixed     $cpt	   Singular CPT name, or array with Singular, Plural, and Registered
 		 * @param array     $arg_overrides CPT registration override arguments
-		 * @return CPT_Core                An instance of the class.
+		 * @return CPT_Core		An instance of the class.
 		 */
 		function register_via_cpt_core( $cpt, $arg_overrides = array() ) {
 			return new CPT_Core( $cpt, $arg_overrides );
