@@ -11,6 +11,9 @@ Domain: cpt-core
 Path: languages
 */
 
+// Our namespace.
+namespace WebDevStudios\CPT_Core;
+
 if ( ! class_exists( 'CPT_Core' ) ) :
 
 	/**
